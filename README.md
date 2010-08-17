@@ -1,8 +1,8 @@
 Onliner-API
 =============
 
-Предназначено для интеграции с сервисами onliner.by
-более подробную документацию можно изучить в [wiki](http://wiki.github.com/shemerey/Onliner-API/)
+Предназначено для интеграции с сервисами onliner.by.
+Более подробную документацию можно изучить в [wiki](http://wiki.github.com/shemerey/Onliner-API/)
 
 #B2B
 
