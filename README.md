@@ -1,12 +1,12 @@
 Onliner-API
 =============
 
-Преднозначено для интеграции сервисов onliner.by
+Преднозначено для интеграции с сервисами onliner.by
 более подробную документацию можно изучить в [wiki](http://wiki.github.com/shemerey/Onliner-API/)
 
 #B2B
 
-Базовый url для работы с API: http://api.onliner.by/b2b/
+Базовый url для работы с API: [http://api.onliner.by/b2b/](http://api.onliner.by/b2b/)
 API для клиентов B2B является одной из важнейших задач интеграции onliner и содержит в себе следующие части: 
 
 ##Расшифровка параметров, используемых при работе с API
