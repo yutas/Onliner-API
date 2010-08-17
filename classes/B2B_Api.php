@@ -149,17 +149,17 @@ class B2B_Api
 	 * @param <type> $_params - набор параметров для изменения 
 	 * @return <type>
 	 */
-	public function edit_position($_pos_id = false, $_params = array())
+	public function edit_position($_cat_id = false, $_dev_id = false, $_pos_id = false, $_params = array())
 	{
 		//не отправляем запрос на сервер впустую
-		if($_pos_id && count($_params))
+		if($_cat_id && $_dev_id && $_pos_id && count($_params))
 		{
 		    //фильтруем параметры, оставляя только нужные
 		    $_params = array_intersect_key($_params,$this->price_fields);
 		
 		    //делаем запрос
 		    return $this->process_response(
-							$this->make_request('import/position/'.$_pos_id.'/', $_params)
+							$this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/'.$_pos_id.'/', $_params)
 											);
 			
 		}
@@ -301,23 +301,22 @@ class B2B_Api
 		}
 	}
 
-	/*********************************************************
-	 *		Экспорт текущего состояния прайса
-	 *********************************************************/
-	public function export($_cat_id = false, $mfr_id = false, $_dev_id = false);
+	/******************************************************************
+	 *		Экспортирование позиций прайса, по ответ в json
+	 ******************************************************************/
+	
+	public function export_price($_cat_id = false, $mfr_id = false, $_dev_id = false)
 	{
 		
 		return $this->process_response(
 							$this->make_request(
-										'export/positions/'
-										.($_cat_id?$_cat_id.'/':'')
-										.($mfr_id?$mfr_id.'/':'')
-										.($_dev_id?$_dev_id.'/':'').'.json' 
+										'export/positions'
+										.($_cat_id?'/'.$_cat_id:'')
+										.($mfr_id?'/'.$mfr_id:'')
+										.($_dev_id?'/'.$_dev_id:'').'.json' 
 												)
 									);
-		return $this->process_response(
-						$this->make_request('catalog')
-										);
+
 		
 	}
 

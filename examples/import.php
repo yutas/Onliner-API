@@ -39,5 +39,5 @@ foreach($positions as $params)
 
 $response = $client->get_pricelist_report();
 var_dump($response);
-//если хотим очистить прайс перед вставкой необходимо передать true
+
 $client->commit();
