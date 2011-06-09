@@ -11,18 +11,19 @@ class B2B_Api
 
 
     private $access_key;                //ключ доступа к API
-    private $price_fields = array(  'cat_id' => false,
-                                    'dev_id' => false,
+    private $price_fields = array(  'cat_id'        => false,
+                                    'dev_id'        => false,
                                     'client_pos_id' => false,
-                                    'price' => false,
-                                    'beznal' => false,
-                                    'on_stock' => false,
-                                    'comment' => false,
-                                    'warranty' => false,
-                                    'shipment' => false,
-                                    'delete' => false,
+                                    'price'         => false,
+                                    'beznal'        => false,
+                                    'on_stock'      => false,
+                                    'comment'       => false,
+                                    'warranty'      => false,
+                                    'shipment'      => false,
+                                    'credit'        => false,
+                                    'delete'        => false,
                                 );
-    private $api_url = "http://api.onliner.by/b2b/";
+    private $api_url = "http://api.onliner.yutas/b2b/";
     private $curl;                      //объект curl
     private $curl_timeout = 10;         //время ожидания ответа сервера API
     private $error_msg;
@@ -40,20 +41,20 @@ class B2B_Api
      * @param <type> $_client_login
      * @param <type> $_client_password
      */
-    public function  __construct($_client_login = false,$_client_password = false)
+    public function  __construct($_client_login = false,$_client_password = false,$_clean_price = false)
     {
-        
+
          //инициализируем CURL
          $this->curl = curl_init();
          //время ожидания ответа сервера API
          curl_setopt($this->curl,CURLOPT_TIMEOUT,$this->curl_timeout);
          //CURL будет возвращать ответ сервера, или FALSE в случае неудачи
          curl_setopt($this->curl,CURLOPT_RETURNTRANSFER,TRUE);
-        
-        
+
+
         if($_client_login && $_client_password)
         {
-            return $this->new_session($_client_login, $_client_password);
+            return $this->new_session($_client_login, $_client_password, $_clean_price);
         }
     }
 
@@ -95,7 +96,7 @@ class B2B_Api
      * @param <type> $_cleaning
      * @return <type>
      */
-    public function new_session($_login = false, $_password = false)
+    public function new_session($_login = false, $_password = false,$_clean_price = false)
     {
         if($_login && $_password)
         {
@@ -103,27 +104,28 @@ class B2B_Api
                 $response = $this->process_response(
                                     $this->make_request(
                                                     '',
-                                                    array(  
+                                                    array(
                                                         'login' => $_login,
-                                                        'password' => $_password
+                                                        'password' => $_password,
+                                                        'cleaning' => intval($_clean_price)
                                                         )
-                                                     )
+                                                    ),
+                                                    'POST'
                                                 );
-                                                
-               if($response)    //при успешной авторизации получаем код доступа сессии
-               {
-                $this->access_key = $response;
-                return $this;
-               }
+
+                if($response)    //при успешной авторизации получаем код доступа сессии
+                {
+                    $this->access_key = $response;
+                    return $this;
+                }
         }
     }
-    
-    
+
+
     /**
      * функция редактирования позиции прайслиста
      *
-     * @param <type> $_pos_id - уникальный номер позиции в прайсе
-     * @param <type> $_params - набор параметров для изменения 
+     * @param <type> $_params - набор параметров для изменения
      * @return <type>
      */
     public function insert_position($_cat_id = false, $_dev_id = false, $_params = array())
@@ -133,20 +135,21 @@ class B2B_Api
         {
             //фильтруем параметры, оставляя только нужные
             $_params = array_intersect_key($_params,$this->price_fields);
-                
+
              //делаем запрос
             return $this->process_response(
-                        $this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/', $_params)
+                        $this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/', $_params),'POST'
                                         );
-                
+
         }
     }
+
 
     /**
      * функция редактирования позиции прайслиста
      *
      * @param <type> $_pos_id - уникальный номер позиции в прайсе
-     * @param <type> $_params - набор параметров для изменения 
+     * @param <type> $_params - набор параметров для изменения
      * @return <type>
      */
     public function edit_position($_cat_id = false, $_dev_id = false, $_pos_id = false, $_params = array())
@@ -156,33 +159,42 @@ class B2B_Api
         {
             //фильтруем параметры, оставляя только нужные
             $_params = array_intersect_key($_params,$this->price_fields);
-        
+
             //делаем запрос
             return $this->process_response(
-                            $this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/'.$_pos_id.'/', $_params)
-                                            );
-            
+                $this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/'.$_pos_id.'/', $_params,'POST')
+            );
+
         }
     }
+
+    public function edit_position_pack($_data = array())
+    {
+        //фильтруем параметры, оставляя только нужные
+        foreach($_data as $k => $v)
+        {
+            $_data[$k] = array_intersect_key($v,$this->price_fields);
+        }
+        //делаем запрос
+        return $this->process_response($this->make_request('import/positionpack/', array('pos_pack' => $_data),'POST'));
+    }
+
 
     /**
      * функция служит для применения всех изменений прайслиста в текущей сессии.
      * Если после редактирования позиций вызвать эту функцию, то все изменения
      * попадут в очередь импорта и с течением времени будут применены на сервере.
      */
-    public function commit($_clean_price = false)
+    public function commit()
     {
-        if($_clean_price == true || $_clean_price == false)
-        {
-            return $this->process_response(
-                        $this->make_request('/commit',array('cleaning' => $_clean_price))
-                        );
-        }   
+        return $this->process_response(
+            $this->make_request('/commit')
+        );
     }
 
     /**
      * функция совершает запрос по выбранному адресу и возвращает ответ
-     * 
+     *
      * @param string $_uri
      * @param array $_params
      * @param string $_request_method - отправлять данные методом (GET по умолчанию)
@@ -194,25 +206,26 @@ class B2B_Api
         {
             $url = $this->api_url.'key:'.$this->access_key.'/'.trim($_uri.'/');
         }
-        else 
+        else
         {
             $url = $this->api_url;
         }
-        
 
-        
-        switch ($_request_method) {
+
+
+        switch ($_request_method)
+        {
             case 'POST':
-                    
-                    curl_setopt($this->curl,CURLOPT_POST,count($_params));
-                    curl_setopt($this->curl,CURLOPT_POSTFIELDS,http_build_query($_params));
-                    curl_setopt($this->curl,CURLOPT_URL,$url);
-        
+
+                curl_setopt($this->curl,CURLOPT_POST,count($_params));
+                curl_setopt($this->curl,CURLOPT_POSTFIELDS,http_build_query($_params));
+                curl_setopt($this->curl,CURLOPT_URL,$url);
+
                 break;
-        
-            //по умолчанию отправлять все через GET
+
+                //по умолчанию отправлять все через GET
             default:
-            
+
                 if(!empty($_params))
                 {
                     $url .= '?'.http_build_query($_params);
@@ -221,13 +234,11 @@ class B2B_Api
                 break;
         }
 
-            $response = curl_exec($this->curl);
-            $response_status = curl_getinfo($this->curl,CURLINFO_HTTP_CODE);
-            
-        return array(
-                    'error' => ($response_status == 200)?0:1,
-                    'response' => json_decode($response,TRUE)
-                    );
+        $response = curl_exec($this->curl);
+        $response_status = curl_getinfo($this->curl,CURLINFO_HTTP_CODE);
+
+        echo $response."\n";
+        return json_decode($response,TRUE);
     }
 
     /**
@@ -290,13 +301,13 @@ class B2B_Api
     private function process_response($response)
     {
         //если запрос прошел без ошибок, получаем pos_id в качестве ответа
-        if(0 == $response['error']) 
+        if(0 == $response['error'])
         {
-            return $response['response'];
+            return $response['result'];
         }
         else
         {
-            $this->error_msg = $response['response'];
+            $this->error_msg = $response['result'];
             return FALSE;
         }
     }
@@ -304,20 +315,20 @@ class B2B_Api
     /******************************************************************
      *      Экспортирование позиций прайса, по ответ в json
      ******************************************************************/
-    
+
     public function export_price($_cat_id = false, $mfr_id = false, $_dev_id = false)
     {
-        
+
         return $this->process_response(
                             $this->make_request(
                                         'export/positions'
                                         .($_cat_id?'/'.$_cat_id:'')
                                         .($mfr_id?'/'.$mfr_id:'')
-                                        .($_dev_id?'/'.$_dev_id:'').'.json' 
+                                        .($_dev_id?'/'.$_dev_id:'').'.json'
                                                 )
                                     );
 
-        
+
     }
 
 
@@ -364,11 +375,11 @@ class B2B_Api
                             $this->make_request(
                                         'catalog/info/'
                                         .($_cat_id?$_cat_id.'/':'')
-                                        .($_dev_id?$_dev_id.'/':'') 
+                                        .($_dev_id?$_dev_id.'/':'')
                                                 )
                                     );
     }
-    
+
     /**
      * Ищем айдишники девайсов по названию (или его части)
      */
@@ -383,7 +394,7 @@ class B2B_Api
                                                                     array('q' => $_search)
                                                             )
                                                 );
-        }                                   
+        }
     }
 
     /**
