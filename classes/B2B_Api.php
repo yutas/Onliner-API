@@ -27,12 +27,20 @@ class B2B_Api
     private $curl;                      //объект curl
     private $curl_timeout = 10;         //время ожидания ответа сервера API
     private $error_msg;
+    private $error_code;
     private $https = FALSE;             //API работает через https
     private $pre_cleaning = FALSE;      //удаляем все позиции перед импортом, или нет
-    private $error_codes = array(   '1' => 'Раздел не подключен',
-                                    '2' => 'В категории нет девайса с таким кодом',
-                                    '3' => 'Превышен лимит предложений на девайс',
-                                    '4' => 'Неверный код категории');
+    private $error_codes = array(
+                            201 => 'Обновлена актуальность',
+                            202 => 'Девайс удален',
+                            203 => 'Девайс успешно добавлен',
+                            204 => 'Раздел не подключен',
+                            205 => 'В категории нет девайса с таким кодом',
+                            206 => 'Превышен лимит предложений на девайс',
+                            207 => 'Неверный код категории',
+                            208 => 'Девайс устарел',
+                            209 => 'Девайс является флагманом',
+                        );
 
 
     /**
@@ -162,7 +170,7 @@ class B2B_Api
 
             //делаем запрос
             return $this->process_response(
-                $this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/'.$_pos_id.'/', $_params,'POST')
+                $this->make_request('import/position/'.$_cat_id.'/'.$_dev_id.'/'.$_pos_id, $_params,'POST')
             );
 
         }
@@ -176,7 +184,7 @@ class B2B_Api
             $_data[$k] = array_intersect_key($v,$this->price_fields);
         }
         //делаем запрос
-        return $this->process_response($this->make_request('import/positionpack/', array('pos_pack' => $_data),'POST'));
+        return $this->process_response($this->make_request('import/positionpack', array('pos_pack' => $_data),'POST'));
     }
 
 
@@ -188,7 +196,7 @@ class B2B_Api
     public function commit()
     {
         return $this->process_response(
-            $this->make_request('/commit')
+            $this->make_request('commit')
         );
     }
 
@@ -200,11 +208,11 @@ class B2B_Api
      * @param string $_request_method - отправлять данные методом (GET по умолчанию)
      * @return <type>
      */
-    public function make_request($_uri = false, $_params = array(), $_request_method = 'GET')
+    public function make_request($_uri = false, $_params = array(), $_request_method = 'GET',$_access_key = FALSE)
     {
         if($_uri)
         {
-            $url = $this->api_url.'key:'.$this->access_key.'/'.trim($_uri.'/');
+            $url = $this->api_url.($_access_key ? : 'key:'.$this->access_key.'/').trim($_uri.'/');
         }
         else
         {
@@ -212,12 +220,11 @@ class B2B_Api
         }
 
 
-
         switch ($_request_method)
         {
             case 'POST':
 
-                curl_setopt($this->curl,CURLOPT_POST,count($_params));
+                curl_setopt($this->curl,CURLOPT_POST,1);
                 curl_setopt($this->curl,CURLOPT_POSTFIELDS,http_build_query($_params));
                 curl_setopt($this->curl,CURLOPT_URL,$url);
 
@@ -237,8 +244,13 @@ class B2B_Api
         $response = curl_exec($this->curl);
         $response_status = curl_getinfo($this->curl,CURLINFO_HTTP_CODE);
 
-        echo $response."\n";
         return json_decode($response,TRUE);
+    }
+
+
+    public function get_sessions()
+    {
+        return $this->process_response($this->make_request('sessions'));
     }
 
     /**
@@ -247,15 +259,15 @@ class B2B_Api
      * если функция вернула FALSE и запрос прошел без ошибок - это значит, что
      * все позиции прайслиста были обновлены без ошибок
      */
-    public function get_pricelist_report(array $_pos_ids = array())
+    public function get_pricelist_report($_access_key,array $_pos_ids = array())
     {
         $params = array();
         if( ! empty($_pos_ids))
         {
             $params['pos_ids'] = json_encode($_pos_ids);
         }
-        $response = $this->process_response($this->make_request('import/report', $params));
-        return !$response?FALSE:$this->get_import_errors($response);
+        $response = $this->process_response($this->make_request('report', $params,'GET',$_access_key));
+        return ! $response ? FALSE : array('errors' => $this->get_import_errors($response['positions']),'import_ended' => isset($response['import_end_time']));
     }
 
     /**
@@ -271,6 +283,12 @@ class B2B_Api
             $error_code = $this->error_codes[$error_code];
         }
         return $_report;
+    }
+
+
+    public function get_error_description($_errno)
+    {
+        return $this->process_response($this->make_request('errordesc/'.$_errno));
     }
 
     /**
@@ -307,6 +325,7 @@ class B2B_Api
         }
         else
         {
+            $this->error_code = intval($response['error']);
             $this->error_msg = $response['result'];
             return FALSE;
         }
@@ -422,5 +441,70 @@ class B2B_Api
                                     .($_cat_id?$_cat_id.'/':'')
                                                 )
                                     );
+    }
+
+
+
+
+    /********************************************
+     *       ФУНКЦИИ УПРАВЛЕНИЯ АККАУНТОМ       *
+     ********************************************/
+
+
+    /**
+     * возвращает текущие настройки
+     */
+    public function get_settings($_param_name = FALSE)
+    {
+        return $this->process_response($this->make_request('settings/get'.($_param_name?'/'.$_param_name:'')));
+    }
+
+
+    /**
+     * изменение настроек (функция возвращает коды ошибок, если они есть)
+     */
+    public function set_settings($_params = array())
+    {
+        if( ! $this->process_response($this->make_request('settings/set',$_params,'POST')))
+        {
+            if($this->error_code == 19)
+            {
+                $tmp = $this->error_msg;
+                $this->error_msg = 'Ошибка при обновлении значений некоторых параметров';
+                return $tmp;
+            }
+        }
+        else
+        {
+            return TRUE;
+        }
+    }
+
+
+    public function get_financial_report()
+    {
+        return $this->process_response($this->make_request('catalog/report'));
+    }
+
+
+
+    public function unlock_perm($_perm_id = '')
+    {
+        return $this->process_response($this->make_request('catalog/unlock'.($_perm_id?'/'.$_perm_id:'')));
+    }
+
+    public function lock_perm($_perm_id = '')
+    {
+        return $this->process_response($this->make_request('catalog/lock'.($_perm_id?'/'.$_perm_id:'')));
+    }
+
+    public function unlock_perm_packet($_pack_id = '')
+    {
+        return $this->process_response($this->make_request('catalog/unlockpack'.($_pack_id?'/'.$_pack_id:'')));
+    }
+
+    public function lock_perm_packet($_pack_id = '')
+    {
+        return $this->process_response($this->make_request('catalog/lockpack'.($_pack_id?'/'.$_pack_id:'')));
     }
 }
