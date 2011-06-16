@@ -3,7 +3,14 @@
 
 include dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'classes/B2B_Api.php';
 $config = include dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR.'foundation.php';
-$client = new B2B_Api($config['user'],$config['password']);
+$client = new B2B_Api($config['user'],$config['password'],TRUE);
+
+if( $client->get_error_msg())
+{
+    exit($client->get_error_msg()."\n");
+}
+
+
 
 
 $positions = array(
@@ -31,13 +38,13 @@ $positions = array(
 foreach($positions as $params)
 {
     $resp = $client->insert_position($params['cat_id'],$params['dev_id'],$params) ;
-    
+
     echo "pos_id: ".$resp."\n";
     echo $params['cat_id']."\t".$params['dev_id']."\t".$client->get_error_msg()."\n";
 
 }
 
-$response = $client->get_pricelist_report();
+$response = $client->get_pricelist_report($client->get_access_key());
 var_dump($response);
 
 $client->commit();
