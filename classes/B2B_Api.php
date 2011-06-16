@@ -23,7 +23,7 @@ class B2B_Api
                                     'credit'        => false,
                                     'delete'        => false,
                                 );
-    private $api_url = "http://api.onliner.yutas/b2b/";
+    private $api_url = "http://api.onliner.by/b2b_new/";
     private $curl;                      //объект curl
     private $curl_timeout = 10;         //время ожидания ответа сервера API
     private $error_msg;
@@ -187,6 +187,11 @@ class B2B_Api
         return $this->process_response($this->make_request('import/positionpack', array('pos_pack' => $_data),'POST'));
     }
 
+
+    public function actual_positions($_data = array())
+    {
+        return $this->process_response($this->make_request('import/isactual', array('pos_ids' => $_data),'POST'));
+    }
 
     /**
      * функция служит для применения всех изменений прайслиста в текущей сессии.
