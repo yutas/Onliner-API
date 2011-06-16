@@ -60,10 +60,7 @@ class B2B_Api
          curl_setopt($this->curl,CURLOPT_RETURNTRANSFER,TRUE);
 
 
-        if($_client_login && $_client_password)
-        {
-            return $this->new_session($_client_login, $_client_password, $_clean_price);
-        }
+        return $this->new_session($_client_login, $_client_password, $_clean_price);
     }
 
     /**
@@ -106,27 +103,24 @@ class B2B_Api
      */
     public function new_session($_login = false, $_password = false,$_clean_price = false)
     {
-        if($_login && $_password)
-        {
-                //урл для начала новой сессии
-                $response = $this->process_response(
-                                    $this->make_request(
-                                                    '',
-                                                    array(
-                                                        'login' => $_login,
-                                                        'password' => $_password,
-                                                        'cleaning' => intval($_clean_price)
-                                                        )
-                                                    ),
-                                                    'POST'
-                                                );
+            //урл для начала новой сессии
+            $response = $this->process_response(
+                                $this->make_request(
+                                                '',
+                                                array(
+                                                    'login' => $_login,
+                                                    'password' => $_password,
+                                                    'cleaning' => intval($_clean_price)
+                                                    )
+                                                ),
+                                                'POST'
+                                            );
 
-                if($response)    //при успешной авторизации получаем код доступа сессии
-                {
-                    $this->access_key = $response;
-                    return $this;
-                }
-        }
+            if($response)    //при успешной авторизации получаем код доступа сессии
+            {
+                $this->access_key = $response;
+                return $this;
+            }
     }
 
 
@@ -217,7 +211,7 @@ class B2B_Api
     {
         if($_uri)
         {
-            $url = $this->api_url.($_access_key ? : 'key:'.$this->access_key.'/').trim($_uri.'/');
+            $url = $this->api_url.'key:'.($_access_key ? $_access_key : $this->access_key).'/'.trim($_uri.'/');
         }
         else
         {
