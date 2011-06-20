@@ -184,7 +184,7 @@ class B2B_Api
 
     public function actual_positions($_data = array())
     {
-        return $this->process_response($this->make_request('import/isactual', array('pos_ids' => $_data),'POST'));
+        return $this->process_response($this->make_request('import/isactual', array('pos_ids' => json_encode($_data)),'GET'));
     }
 
     /**
