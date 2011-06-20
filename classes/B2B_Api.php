@@ -178,13 +178,13 @@ class B2B_Api
             $_data[$k] = array_intersect_key($v,$this->price_fields);
         }
         //делаем запрос
-        return $this->process_response($this->make_request('import/positionpack', array('pos_pack' => $_data),'POST'));
+        return $this->process_response($this->make_request('import/positionpack', array('pos_pack' => json_encode($_data)),'POST'));
     }
 
 
     public function actual_positions($_data = array())
     {
-        return $this->process_response($this->make_request('import/isactual', array('pos_ids' => json_encode($_data)),'GET'));
+        return $this->process_response($this->make_request('import/isactual', array('pos_ids' => json_encode($_data)),'POST'));
     }
 
     /**
@@ -239,7 +239,7 @@ class B2B_Api
                 curl_setopt($this->curl,CURLOPT_URL,$url);
                 break;
         }
-
+//echo urldecode($url)."\n";
         $response = curl_exec($this->curl);
         $response_status = curl_getinfo($this->curl,CURLINFO_HTTP_CODE);
 
@@ -314,6 +314,13 @@ class B2B_Api
         return $this->error_msg;
     }
 
+    /**
+     * функция возвращает сообщение об ошибке
+     */
+    public function get_error_code()
+    {
+        return $this->error_code;
+    }
 
     private function process_response($response)
     {
