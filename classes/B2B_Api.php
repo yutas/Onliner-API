@@ -265,7 +265,7 @@ class B2B_Api
         {
             $params['pos_ids'] = json_encode($_pos_ids);
         }
-        $response = $this->process_response($this->make_request('report', $params,'GET',$_access_key));
+        $response = $this->process_response($this->make_request('report', $params,'POST',$_access_key));
         return ! $response ? FALSE : array('errors' => $this->get_import_errors($response['positions']),'import_ended' => isset($response['import_end_time']));
     }
 
