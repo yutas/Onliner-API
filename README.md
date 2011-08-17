@@ -24,7 +24,7 @@ Onliner-API. Версия 2.
 
 #B2B
 
-Временный базовый url для работы с API: [http://api.onliner.by/b2b_new/](http://api.onliner.by/b2b_new/)
+Временный базовый url для работы с API: [http://api.onliner.by/b2b/](http://api.onliner.by/b2b/)
 
 
 Support
